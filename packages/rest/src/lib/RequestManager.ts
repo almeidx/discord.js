@@ -2,6 +2,7 @@ import { Blob, Buffer } from 'node:buffer';
 import { EventEmitter } from 'node:events';
 import { setInterval, clearInterval } from 'node:timers';
 import type { URLSearchParams } from 'node:url';
+import { types } from 'node:util';
 import { Collection } from '@discordjs/collection';
 import { lazy } from '@discordjs/util';
 import { DiscordSnowflake } from '@sapphire/snowflake';
@@ -15,6 +16,17 @@ import { resolveBody } from './utils/utils.js';
 // Make this a lazy dynamic import as file-type is a pure ESM package
 const getFileType = lazy(async () => import('file-type'));
 
+type TypedArray =
+	| Float32Array
+	| Float64Array
+	| Int8Array
+	| Int16Array
+	| Int32Array
+	| Uint8Array
+	| Uint8ClampedArray
+	| Uint16Array
+	| Uint32Array;
+
 /**
  * Represents a file to be added to the request
  */
@@ -26,7 +38,7 @@ export interface RawFile {
 	/**
 	 * The actual data for the file
 	 */
-	data: Buffer | boolean | number | string;
+	data: Buffer | TypedArray | boolean | number | string;
 	/**
 	 * An explicit key to use for key of the formdata field for this file.
 	 * When not provided, the index of the file in the files array is used in the form `files[${index}]`.
@@ -416,7 +428,7 @@ export class RequestManager extends EventEmitter {
 				// FormData.append only accepts a string or Blob.
 				// https://developer.mozilla.org/en-US/docs/Web/API/Blob/Blob#parameters
 				// The Blob constructor accepts TypedArray/ArrayBuffer, strings, and Blobs.
-				if (Buffer.isBuffer(file.data)) {
+				if (Buffer.isBuffer(file.data) || types.isTypedArray(file.data)) {
 					// Try to infer the content type from the buffer if one isn't passed
 					const { fileTypeFromBuffer } = await getFileType();
 					let contentType = file.contentType;
